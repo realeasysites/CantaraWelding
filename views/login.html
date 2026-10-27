@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin Login · Cantara Welding</title>
+<link rel="icon" href="/images/favicon.svg">
+<style>
+  *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0a0a;font-family:Inter,system-ui,sans-serif;color:#e9ecef}
+  .card{width:min(380px,92vw);background:#161616;border:1px solid #2c3238;border-top:4px solid #fe7d01;border-radius:10px;padding:32px}
+  h1{font-size:20px;margin:0 0 4px}p{color:#9aa3ab;font-size:14px;margin:0 0 20px}
+  input{width:100%;padding:12px 14px;border-radius:8px;border:1px solid #39414a;background:#0a0a0a;color:#fff;font-size:15px}
+  button{width:100%;margin-top:14px;padding:12px;border:0;border-radius:8px;background:#fe7d01;color:#111;font-weight:700;font-size:15px;cursor:pointer}
+  .err{background:#3a1d14;color:#ffb38a;padding:10px 12px;border-radius:8px;font-size:14px;margin-bottom:14px;display:none}
+</style>
+</head>
+<body>
+<form class="card" method="post" action="/admin/login">
+  <h1>Lead Dashboard</h1>
+  <p>Cantara Welding &amp; Fabrication</p>
+  <div class="err" id="err"></div>
+  <input type="password" name="password" placeholder="Password" autocomplete="current-password" required autofocus>
+  <button type="submit">Sign in</button>
+</form>
+<script>
+  const e = new URLSearchParams(location.search).get('error');
+  if (e) { const el = document.getElementById('err'); el.style.display = 'block';
+    el.textContent = e === 'disabled' ? 'Login is disabled until ADMIN_PASSWORD is set on the server.' : 'Wrong password. Try again.'; }
+</script>
+</body>
+</html>

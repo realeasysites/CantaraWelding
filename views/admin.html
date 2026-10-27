@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Leads · Cantara Welding</title>
+<link rel="icon" href="/images/favicon.svg">
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#0a0a0a;font-family:Inter,system-ui,sans-serif;color:#e9ecef}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;background:#161616;border-bottom:3px solid #fe7d01;position:sticky;top:0;z-index:2}
+  header h1{font-size:18px;margin:0}header small{color:#9aa3ab;display:block;font-weight:400}
+  header button{background:transparent;border:1px solid #39414a;color:#e9ecef;padding:8px 14px;border-radius:8px;cursor:pointer}
+  main{max-width:1100px;margin:0 auto;padding:20px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+  .stat{background:#161616;border:1px solid #2c3238;border-radius:10px;padding:14px;cursor:pointer}
+  .stat.active{border-color:#fe7d01}.stat b{font-size:24px;display:block}.stat span{color:#9aa3ab;font-size:13px;text-transform:capitalize}
+  .card{background:#161616;border:1px solid #2c3238;border-left:4px solid #fe7d01;border-radius:10px;padding:16px;margin-bottom:12px}
+  .card[data-status=contacted]{border-left-color:#4ea8de}.card[data-status=quoted]{border-left-color:#f4c430}.card[data-status=won]{border-left-color:#3fb950}.card[data-status=lost]{border-left-color:#6b7280}
+  .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .name{font-weight:700;font-size:16px}.meta{color:#9aa3ab;font-size:13px;margin-top:2px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px 16px;margin:12px 0;font-size:14px}
+  .grid div span{color:#9aa3ab;display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .msg{background:#0a0a0a;border-radius:8px;padding:10px 12px;font-size:14px;white-space:pre-wrap;margin-bottom:10px}
+  a{color:#ff8a45}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  select,textarea{background:#0a0a0a;color:#e9ecef;border:1px solid #39414a;border-radius:8px;padding:8px;font:inherit;font-size:14px}
+  textarea{width:100%;min-height:54px;margin-top:8px}
+  .del{background:#3a1d14;color:#ffb38a;border:1px solid #5c2a1b;border-radius:8px;padding:8px 12px;cursor:pointer;margin-left:auto}
+  .empty{text-align:center;color:#9aa3ab;padding:50px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Lead Dashboard <small>Cantara Welding &amp; Fabrication</small></h1>
+  <form method="post" action="/admin/logout"><button>Sign out</button></form>
+</header>
+<main>
+  <div class="stats" id="stats"></div>
+  <div id="list"></div>
+</main>
+<script>
+const STATUSES = ['new','contacted','quoted','won','lost'];
+let leads = [], filter = 'all';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function api(url, opts={}) {
+  const r = await fetch(url, { headers: {'Content-Type':'application/json'}, ...opts });
+  if (r.status === 401) { location.href = '/admin/login'; throw new Error('signed out'); }
+  return r.json();
+}
+async function load() { leads = await api('/admin/api/quotes'); render(); }
+
+function render() {
+  const counts = { all: leads.length };
+  STATUSES.forEach(s => counts[s] = leads.filter(l => l.status === s).length);
+  document.getElementById('stats').innerHTML = ['all', ...STATUSES].map(s =>
+    `<div class="stat ${filter===s?'active':''}" data-f="${s}"><b>${counts[s]}</b><span>${s==='all'?'All leads':s}</span></div>`).join('');
+  const shown = filter === 'all' ? leads : leads.filter(l => l.status === filter);
+  document.getElementById('list').innerHTML = shown.length ? shown.map(l => `
+    <div class="card" data-status="${esc(l.status)}">
+      <div class="top"><div><div class="name">${esc(l.name)}</div>
+        <div class="meta">${new Date(l.created_at.replace(' ','T')+'Z').toLocaleString()}</div></div></div>
+      <div class="grid">
+        <div><span>Phone</span><a href="tel:${esc(l.phone)}">${esc(l.phone)}</a></div>
+        <div><span>Email</span>${l.email ? `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>` : '—'}</div>
+        <div><span>Town</span>${esc(l.town) || '—'}</div>
+        <div><span>Type</span>${esc(l.client_type) || '—'}</div>
+        <div><span>Project</span>${esc(l.project_type) || '—'}</div>
+        <div><span>Timeline</span>${esc(l.timeline) || '—'}</div>
+      </div>
+      ${l.message ? `<div class="msg">${esc(l.message)}</div>` : ''}
+      <div class="actions">
+        <select data-id="${l.id}" class="st">${STATUSES.map(s => `<option ${s===l.status?'selected':''}>${s}</option>`).join('')}</select>
+        <button class="del" data-id="${l.id}">Delete</button>
+      </div>
+      <textarea data-id="${l.id}" class="notes" placeholder="Private notes…">${esc(l.notes)}</textarea>
+    </div>`).join('') : '<div class="empty">No leads here yet.</div>';
+}
+
+document.addEventListener('click', async e => {
+  const f = e.target.closest('.stat'); if (f) { filter = f.dataset.f; render(); }
+  if (e.target.classList.contains('del')) {
+    if (!confirm('Delete this submission permanently?')) return;
+    await api('/admin/api/quotes/' + e.target.dataset.id, { method: 'DELETE' }); load();
+  }
+});
+document.addEventListener('change', async e => {
+  if (e.target.classList.contains('st')) { await api('/admin/api/quotes/' + e.target.dataset.id, { method:'PATCH', body: JSON.stringify({ status: e.target.value }) }); load(); }
+  if (e.target.classList.contains('notes')) { await api('/admin/api/quotes/' + e.target.dataset.id, { method:'PATCH', body: JSON.stringify({ notes: e.target.value }) }); }
+});
+load();
+</script>
+</body>
+</html>
